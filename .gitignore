@@ -1,0 +1,6 @@
+node_modules/
+dist/
+data/
+notes/
+*.tmp
+.DS_Store

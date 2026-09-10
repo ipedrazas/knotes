@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+notes
+.git
+.github
+**/*.test.ts
+*.md
+Dockerfile
+compose.yaml
+.DS_Store
