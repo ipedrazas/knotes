@@ -1,0 +1,1179 @@
+/* knotes — an old notebook on a wooden desk.
+ *
+ * The page is ruled every --lh pixels, and everything in the editor is sized in whole
+ * lines so handwriting stays on the rules: paragraphs are one line tall, titles two,
+ * code cards add half a line above and below.
+ */
+
+:root {
+  --desk: #3a2a1e;
+  --paper: #fbf5e6;
+  --paper-2: #f1e6cb;
+  --rule: rgba(88, 136, 186, 0.36);
+  --margin: rgba(204, 78, 78, 0.5);
+  --ink: #1d2a44;
+  --ink-soft: #4b5670;
+  --pencil: #756a5c;
+  --kraft: #b48a58;
+  --highlight: rgba(255, 224, 80, 0.6);
+  --stamp: #b3261e;
+  --lh: 32px; /* one ruled line */
+  --gutter: 68px; /* paper left of the red margin line, where the holes are */
+  --rule-shift: -5px; /* nudges the rules so text sits on them, not above */
+  --hand: 'Kalam', 'Bradley Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+  --title: 'Caveat', 'Kalam', 'Bradley Hand', cursive;
+  --type: 'Special Elite', 'American Typewriter', 'Courier New', monospace;
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .15 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 20px;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--desk);
+  /* wood grain */
+  background-image:
+    radial-gradient(ellipse at 25% 15%, rgba(255, 196, 130, 0.12), transparent 55%),
+    radial-gradient(ellipse at 85% 95%, rgba(0, 0, 0, 0.4), transparent 60%),
+    repeating-linear-gradient(91deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(89deg, rgba(0, 0, 0, 0.09) 0 1px, transparent 1px 27px),
+    repeating-linear-gradient(90.5deg, rgba(120, 70, 30, 0.12) 0 40px, transparent 40px 95px);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--highlight);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Desk layout ─────────────────────────────────────────────────────────── */
+
+.desk {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 30px;
+  height: 100dvh;
+  padding: 24px 28px 24px 24px;
+}
+
+.desk__page {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Cover & contents ────────────────────────────────────────────────────── */
+
+.cover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 16px 12px;
+  border-radius: 6px 14px 14px 6px;
+  background-color: var(--kraft);
+  background-image:
+    var(--noise),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 235, 200, 0.25), transparent 60%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 14px 30px rgba(0, 0, 0, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* stitching round the edge */
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1.5px dashed rgba(72, 44, 18, 0.35);
+  border-radius: 4px 10px 10px 4px;
+  pointer-events: none;
+}
+
+.cover__label {
+  position: relative;
+  margin: 2px 14px 18px;
+  padding: 10px 14px 8px;
+  text-align: center;
+  background: #fdfaf1;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+  transform: rotate(-1.2deg);
+}
+
+.cover__label::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 3px double rgba(29, 42, 68, 0.35);
+  pointer-events: none;
+}
+
+.cover__label h1 {
+  margin: 0;
+  font-family: var(--type);
+  font-size: 1.45rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  padding-left: 0.3em;
+}
+
+.cover__label p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.cover__tools {
+  display: flex;
+  gap: 8px;
+  margin: 0 6px 14px;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(253, 250, 241, 0.92);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.search:focus {
+  outline: 2px solid rgba(29, 42, 68, 0.5);
+  outline-offset: 1px;
+}
+
+.contents {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -2px;
+  padding: 2px 8px 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(60, 35, 15, 0.4) transparent;
+}
+
+.contents ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contents__empty {
+  margin: 12px 8px;
+  color: rgba(40, 24, 10, 0.7);
+  font-family: var(--title);
+  font-size: 1.4rem;
+  text-align: center;
+}
+
+.entry {
+  position: relative;
+  display: block;
+  padding: 7px 12px 7px 14px;
+  border-radius: 2px;
+  color: var(--ink);
+  text-decoration: none;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(transparent 0 25px, var(--rule) 25px 26px);
+  background-position: 0 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.entry:nth-child(odd) {
+  transform: rotate(-0.25deg);
+}
+
+.entry:hover {
+  transform: translateX(3px) rotate(-0.4deg);
+}
+
+.entry:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.entry.is-active {
+  box-shadow:
+    inset 4px 0 0 var(--stamp),
+    0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+.entry__title {
+  display: flex;
+  gap: 4px;
+  padding-right: 40px;
+  font-family: var(--title);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.entry__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry.is-active .entry__text {
+  background: linear-gradient(transparent 50%, var(--highlight) 50%, var(--highlight) 90%, transparent 90%);
+}
+
+.entry__pen {
+  flex: none;
+  color: var(--stamp);
+  animation: scribble 0.5s ease-in-out infinite alternate;
+}
+
+.entry__meta {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--pencil);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.entry__meta time {
+  flex: none;
+  padding-top: 2px;
+  font-family: var(--type);
+  font-size: 0.7rem;
+}
+
+.entry__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry .blots {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+}
+
+.cover__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 6px 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(60, 35, 15, 0.25);
+}
+
+.me {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: #2a1a0c;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.me__ink {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 52% 48% 55% 45% / 50% 55% 45% 50%;
+  background: var(--c);
+}
+
+.wire {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #8b3a2a;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+.wire.is-on {
+  background: #3f8a4e;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.stamp-btn {
+  flex: none;
+  padding: 5px 10px 4px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  background: rgba(253, 250, 241, 0.65);
+  color: var(--stamp);
+  font-family: var(--type);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: rotate(-2deg);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.stamp-btn:hover:not(:disabled) {
+  background: var(--stamp);
+  color: #fdf6e3;
+}
+
+.stamp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.link-btn {
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── The sheet of paper ──────────────────────────────────────────────────── */
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px 8px 8px 3px;
+  background-color: var(--paper);
+  background-image:
+    var(--noise),
+    radial-gradient(circle at 88% 12%, rgba(176, 120, 50, 0.07) 0 40px, transparent 90px),
+    radial-gradient(circle at 12% 78%, rgba(176, 120, 50, 0.06) 0 30px, transparent 80px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(160, 115, 55, 0.18) 100%);
+  /* a stack of pages underneath */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    3px 3px 0 -1px var(--paper-2),
+    3px 3px 0 0 rgba(0, 0, 0, 0.12),
+    6px 6px 0 -1px var(--paper-2),
+    6px 6px 0 0 rgba(0, 0, 0, 0.12),
+    0 22px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* punched holes */
+.sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  width: 44px;
+  background: radial-gradient(circle at 22px 50%, var(--desk) 0 7px, rgba(90, 60, 30, 0.35) 7.5px, transparent 9.5px) 0
+    20px / 44px 96px repeat-y;
+  pointer-events: none;
+}
+
+/* the double red margin line */
+.sheet::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--gutter);
+  z-index: 1;
+  width: 5px;
+  border-left: 1.5px solid var(--margin);
+  border-right: 1.5px solid var(--margin);
+  pointer-events: none;
+}
+
+.sheet__head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 72px;
+  padding: 12px 22px 10px calc(var(--gutter) + 22px);
+  border-bottom: 2px solid rgba(88, 136, 186, 0.55);
+}
+
+.sheet__when {
+  flex: 1;
+  min-width: 180px;
+}
+
+.sheet__date {
+  display: block;
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.writing-now {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.writing-now__pen {
+  display: inline-block;
+  color: var(--stamp);
+  animation: scribble 0.5s ease-in-out infinite alternate;
+}
+
+.dots::after {
+  content: '…';
+  display: inline-block;
+  width: 1em;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: dots 1.2s steps(4, jump-none) infinite;
+}
+
+.sheet__actions {
+  display: flex;
+  gap: 2px;
+}
+
+.back {
+  display: none;
+}
+
+/* status: a rubber stamp */
+.stamp {
+  padding: 2px 8px 1px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--type);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+  mask-image: var(--noise), linear-gradient(#000, #000);
+}
+
+.stamp--synced {
+  color: #2e7040;
+}
+.stamp--saving,
+.stamp--opening {
+  color: #9a5a1c;
+}
+.stamp--offline {
+  color: var(--stamp);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+
+.tools {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-height: 43px;
+  padding: 5px 22px 5px calc(var(--gutter) + 16px);
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.12);
+}
+
+.tools__sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.tool {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tool:hover {
+  background: rgba(60, 40, 10, 0.07);
+  color: var(--ink);
+}
+
+.tool.is-on {
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+.tool code {
+  font-family: var(--type);
+  font-size: 0.8rem;
+}
+
+.tool__title {
+  font-family: var(--title);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.tool__heading {
+  font-family: var(--title);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.tool--danger:hover {
+  background: rgba(179, 38, 30, 0.1);
+  color: var(--stamp);
+}
+
+.sheet__actions .tool {
+  font-family: var(--type);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── The ruled page and the writing on it ────────────────────────────────── */
+
+.paper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(60, 40, 10, 0.25) transparent;
+}
+
+.paper__lines {
+  min-height: 100%;
+  padding: calc(var(--lh) / 2) 36px calc(var(--lh) * 4) calc(var(--gutter) + 22px);
+  background-image: linear-gradient(transparent calc(var(--lh) - 1px), var(--rule) calc(var(--lh) - 1px));
+  background-size: 100% var(--lh);
+  background-position: 0 calc(var(--lh) / 2 + var(--rule-shift));
+  cursor: text;
+}
+
+.writing {
+  min-height: calc(var(--lh) * 10);
+  max-width: 46em;
+  font-size: 1.05rem;
+  line-height: var(--lh);
+  outline: none;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-variant-ligatures: none;
+}
+
+.writing > *,
+.writing li > * {
+  margin: 0;
+}
+
+.writing p,
+.writing li {
+  line-height: var(--lh);
+}
+
+/* The first line is the note's title, as in Apple Notes. */
+.writing > p:first-child,
+.writing > h1,
+.writing > h2:first-child {
+  font-family: var(--title);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: calc(var(--lh) * 2);
+  letter-spacing: 0.01em;
+}
+
+.writing h2,
+.writing h3,
+.writing h4,
+.writing h5,
+.writing h6 {
+  font-family: var(--title);
+  font-weight: 700;
+  line-height: var(--lh);
+}
+
+.writing h2 {
+  font-size: 1.85rem;
+}
+
+.writing h3,
+.writing h4,
+.writing h5,
+.writing h6 {
+  font-size: 1.5rem;
+  color: var(--ink-soft);
+}
+
+.writing strong {
+  font-weight: 700;
+}
+
+.writing a {
+  color: #1f4aa8;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.writing s {
+  text-decoration-color: rgba(179, 38, 30, 0.7);
+  text-decoration-thickness: 2px;
+}
+
+.writing code {
+  padding: 0 0.25em;
+  border-radius: 3px;
+  background: rgba(60, 40, 10, 0.07);
+  font-family: var(--type);
+  font-size: 0.85em;
+}
+
+.writing ul,
+.writing ol {
+  padding-left: 1.4em;
+}
+
+.writing ul li::marker {
+  color: var(--ink-soft);
+  content: '–  ';
+}
+
+.writing ol li::marker {
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-weight: 700;
+  font-size: 1.15em;
+}
+
+.writing blockquote {
+  padding-left: 1em;
+  border-left: 2px solid rgba(117, 106, 92, 0.6);
+  color: var(--ink-soft);
+}
+
+/* checklists */
+.writing ul[data-type='taskList'] {
+  padding-left: 0.1em;
+  list-style: none;
+}
+
+.writing ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.55em;
+}
+
+.writing ul[data-type='taskList'] li::marker {
+  content: none;
+}
+
+.writing ul[data-type='taskList'] li > label {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: var(--lh);
+  user-select: none;
+}
+
+.writing ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.writing ul[data-type='taskList'] input[type='checkbox'] {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 2px solid var(--ink);
+  border-radius: 3px 5px 3px 6px;
+  background: transparent;
+  transform: rotate(-3deg);
+  cursor: pointer;
+}
+
+.writing ul[data-type='taskList'] input[type='checkbox']:checked::after {
+  content: '✓';
+  color: var(--stamp);
+  font-family: var(--hand);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(3px, -5px) rotate(10deg);
+}
+
+.writing li[data-checked='true'] > div {
+  color: var(--pencil);
+  text-decoration: line-through;
+  text-decoration-color: rgba(29, 42, 68, 0.45);
+}
+
+/* code: a typed card taped onto the page (half a line above and below) */
+.writing pre {
+  position: relative;
+  margin: calc(var(--lh) / 2) 0;
+  padding: 0 16px;
+  border-radius: 2px;
+  background: #fffdf6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  transform: rotate(-0.3deg);
+}
+
+.writing pre::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: calc(50% - 40px);
+  width: 80px;
+  height: 20px;
+  background: rgba(250, 240, 190, 0.7);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  transform: rotate(-3deg);
+}
+
+.writing pre code {
+  display: block;
+  overflow-x: auto;
+  padding: 0;
+  background: none;
+  font-size: 0.8rem;
+  line-height: var(--lh);
+  white-space: pre;
+}
+
+/* divider: a pen squiggle, one line tall */
+.writing hr {
+  height: var(--lh);
+  border: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='10'%3E%3Cpath d='M0 5 Q 11 0 22 5 T 44 5' fill='none' stroke='%234b5670' stroke-width='1.6'/%3E%3C/svg%3E")
+    center / 44px 10px repeat-x;
+  cursor: pointer;
+}
+
+.writing hr.ProseMirror-selectednode {
+  outline: 2px solid var(--highlight);
+}
+
+.writing p.is-empty::before,
+.writing h1.is-empty::before,
+.writing h2.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: rgba(75, 86, 112, 0.35);
+  pointer-events: none;
+}
+
+/* other people's cursors */
+.ink-caret {
+  position: relative;
+  margin-right: -1px;
+  margin-left: -1px;
+  border-left: 2px solid var(--c);
+  word-break: normal;
+  pointer-events: none;
+}
+
+.ink-caret__label {
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  padding: 3px 7px 2px;
+  border-radius: 4px 4px 4px 0;
+  background: var(--c);
+  color: #fffdf6;
+  font-family: var(--hand);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: normal;
+  white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transform: translateY(3px) rotate(-2deg);
+  transform-origin: left bottom;
+}
+
+.ink-selection {
+  border-radius: 2px;
+}
+
+/* ── Ink blots (people) ──────────────────────────────────────────────────── */
+
+.blots {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -7px;
+  border-radius: 52% 48% 55% 45% / 50% 55% 45% 50%;
+  background: var(--c, var(--ink));
+  color: #fffdf6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--paper);
+  cursor: default;
+}
+
+.blot:first-child {
+  margin-left: 0;
+}
+
+.blot:nth-child(even) {
+  border-radius: 45% 55% 48% 52% / 55% 45% 50% 50%;
+}
+
+.blot--more {
+  background: var(--pencil);
+}
+
+.blot.is-typing::after {
+  content: '✎';
+  position: absolute;
+  right: -9px;
+  bottom: -7px;
+  color: var(--ink);
+  font-size: 16px;
+  animation: scribble 0.5s ease-in-out infinite alternate;
+}
+
+.blots--sm .blot {
+  width: 20px;
+  height: 20px;
+  margin-left: -5px;
+  font-size: 0.5rem;
+}
+
+.blots--sm .blot.is-typing::after {
+  display: none;
+}
+
+/* ── Blank page ──────────────────────────────────────────────────────────── */
+
+.sheet--blank {
+  align-items: center;
+  justify-content: center;
+  background-image:
+    var(--noise),
+    linear-gradient(transparent calc(var(--lh) - 1px), var(--rule) calc(var(--lh) - 1px)),
+    radial-gradient(ellipse at center, transparent 55%, rgba(160, 115, 55, 0.18) 100%);
+  background-size:
+    auto,
+    100% var(--lh),
+    auto;
+  background-position:
+    0 0,
+    0 72px,
+    0 0;
+}
+
+.blank {
+  position: relative;
+  z-index: 2;
+  padding: 24px 24px 24px calc(var(--gutter) + 24px);
+  text-align: center;
+}
+
+.blank__hand {
+  margin: 0 0 20px;
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-size: 2.2rem;
+  line-height: 1.15;
+  transform: rotate(-2deg);
+}
+
+.blank__notice {
+  margin-top: 22px;
+  color: var(--stamp);
+  font-family: var(--type);
+  font-size: 0.8rem;
+}
+
+/* ── Who's writing? (an index card) ──────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 12, 6, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.card {
+  width: min(430px, 100%);
+  padding: 18px 26px 20px;
+  border-radius: 3px;
+  background-color: #fffdf7;
+  background-image:
+    linear-gradient(transparent 62px, rgba(204, 78, 78, 0.55) 62px 64px, transparent 64px),
+    repeating-linear-gradient(transparent 0 29px, var(--rule) 29px 30px);
+  background-position:
+    0 0,
+    0 76px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  transform: rotate(-1deg);
+}
+
+.card h2 {
+  margin: 0 0 18px;
+  font-family: var(--title);
+  font-size: 2.3rem;
+  line-height: 44px;
+}
+
+.card__hint {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 30px;
+}
+
+.card__name input {
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  border-bottom: 2px solid currentColor;
+  background: transparent;
+  font-family: var(--title);
+  font-size: 2rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.card__name input::placeholder {
+  color: rgba(75, 86, 112, 0.35);
+}
+
+.inks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.inks legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.ink {
+  width: 32px;
+  height: 32px;
+  border-radius: 52% 48% 55% 45% / 50% 55% 45% 50%;
+  background: var(--c);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+.ink:hover {
+  transform: scale(1.1);
+}
+
+.ink input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ink:has(input:checked) {
+  box-shadow:
+    0 0 0 3px #fffdf7,
+    0 0 0 5px var(--c);
+}
+
+.ink:has(input:focus-visible) {
+  outline: 2px dashed var(--ink);
+  outline-offset: 6px;
+}
+
+.card__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+/* ── Animation ───────────────────────────────────────────────────────────── */
+
+@keyframes scribble {
+  from {
+    transform: rotate(-14deg) translateX(-1px);
+  }
+  to {
+    transform: rotate(8deg) translate(2px, 1px);
+  }
+}
+
+@keyframes dots {
+  from {
+    width: 0;
+  }
+  to {
+    width: 1em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Phones: index and page become two screens, like Notes on an iPhone ──── */
+
+@media (max-width: 820px) {
+  :root {
+    --lh: 30px;
+    --gutter: 44px;
+  }
+
+  body {
+    font-size: 18px;
+  }
+
+  .desk {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: max(10px, env(safe-area-inset-top)) 16px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .desk[data-view='note'] .cover,
+  .desk[data-view='index'] .desk__page {
+    display: none;
+  }
+
+  .sheet::before {
+    width: 30px;
+    background: radial-gradient(circle at 15px 50%, var(--desk) 0 5px, rgba(90, 60, 30, 0.35) 5.5px, transparent 7px) 0
+      14px / 30px 72px repeat-y;
+  }
+
+  .sheet__head {
+    padding: 10px 12px 8px calc(var(--gutter) + 12px);
+  }
+
+  .back {
+    display: inline-flex;
+    padding: 4px 8px 4px 0;
+    border: none;
+    background: none;
+    color: var(--stamp);
+    font-family: var(--type);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .sheet__when {
+    order: 5;
+    flex-basis: 100%;
+  }
+
+  .sheet__actions {
+    margin-left: auto;
+  }
+
+  .tools {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px 12px 4px calc(var(--gutter) + 8px);
+    scrollbar-width: none;
+  }
+
+  .paper__lines {
+    padding-right: 16px;
+    padding-left: calc(var(--gutter) + 14px);
+  }
+
+  .writing > p:first-child,
+  .writing > h1,
+  .writing > h2:first-child {
+    font-size: 2.1rem;
+  }
+}
