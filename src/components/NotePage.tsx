@@ -8,6 +8,7 @@ import { Placeholder } from '@tiptap/extensions'
 import { FIELD, noteExtensions } from '../../shared/extensions.ts'
 import { collabUrl, deleteNote, longDate, navigate, type NoteMeta } from '../api.ts'
 import { safeColor, type User } from '../user.ts'
+import { AddressCard } from './AddressCard.tsx'
 import { Blots, namesOf } from './Blots.tsx'
 import { Toolbar } from './Toolbar.tsx'
 
@@ -68,6 +69,7 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
   const peers = usePeers(provider, doc.clientID)
   const writing = peers.filter((p) => p.typing)
   const [missing, setMissing] = useState(false)
+  const [readdressing, setReaddressing] = useState(false)
 
   useEffect(() => {
     const onFailed = () => setMissing(true)
@@ -147,6 +149,9 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
         <Blots people={peers} />
         <span className={`stamp stamp--${status}`}>{STATUS_LABEL[status]}</span>
         <div className="sheet__actions">
+          <button className="tool" onClick={() => setReaddressing(true)} title={`Change this page's address (/n/${id})`}>
+            Address
+          </button>
           <a className="tool" href={`/api/notes/${id}/markdown`} download title="Download as markdown">
             ⤓ .md
           </a>
@@ -159,6 +164,7 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
       <div className="paper">
         <EditorContent editor={editor} className="paper__lines" />
       </div>
+      {readdressing && <AddressCard id={id} onClose={() => setReaddressing(false)} />}
     </section>
   )
 }

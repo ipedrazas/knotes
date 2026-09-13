@@ -30,7 +30,12 @@ Runs at <https://knotes.andcake.dev>.
 ```
 
 - The first line of a note is its title, and the file is renamed when the title changes. The
-  part after `--` is the note's id and never changes.
+  part after `--` is the note's id, which is also its address: `/n/k3j9x0a2bc`.
+- **Addresses can be changed.** "Address" on a note gives it a memorable one, like
+  `/n/my-party` (lowercase letters, numbers and dashes). The id and the files change with
+  it, and the old address keeps redirecting: `.knotes/moved.json` remembers where notes
+  went. If someone has the note open while it moves, they follow it to the new address, and
+  whatever they typed during the move is kept.
 - Notes are written 2 seconds after typing stops, and at least every 10 seconds while someone
   keeps typing. On shutdown (SIGTERM) every open note is saved straight away.
 - Next to each note, `.knotes/<id>.yjs` holds its Yjs state. Without it, rebuilding a note from

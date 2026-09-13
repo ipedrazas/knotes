@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { prosemirrorToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from '@tiptap/y-tiptap'
+import { toAddress } from '../shared/address.ts'
 import { FIELD } from '../shared/extensions.ts'
 import { parseMarkdown, schema, toMarkdown } from './markdown.ts'
 import { NoteStore, slugify } from './store.ts'
@@ -23,12 +24,23 @@ const docFrom = (md: string) => {
 }
 const markdownOf = (ydoc: Y.Doc) => toMarkdown(yXmlFragmentToProseMirrorRootNode(ydoc.getXmlFragment(FIELD), schema))
 const notes = async () => (await readdir(dir)).filter((f) => f.endsWith('.md'))
+const addParagraph = (ydoc: Y.Doc, text: string) => {
+  const p = new Y.XmlElement('paragraph')
+  p.insert(0, [new Y.XmlText(text)])
+  ydoc.getXmlFragment(FIELD).push([p])
+}
 
 describe('slugify', () => {
   it('makes file-name-safe slugs', () => {
     expect(slugify('Café & Crème: plans!')).toBe('cafe-creme-plans')
     expect(slugify('')).toBe('untitled')
     expect(slugify('../../etc/passwd')).toBe('etc-passwd')
+  })
+
+  it('turns what people type into addresses', () => {
+    expect(toAddress('  My Party! ')).toBe('my-party')
+    expect(toAddress('--a--b--')).toBe('a-b')
+    expect(toAddress('!!!')).toBe('')
   })
 })
 
@@ -99,5 +111,73 @@ describe('NoteStore', () => {
     const trash = await readdir(path.join(dir, '.trash'))
     expect(trash).toHaveLength(1)
     expect(trash[0]).toMatch(new RegExp(`bye--${id}\\.md$`))
+  })
+
+  it('gives a note a new address and redirects the old one, across restarts', async () => {
+    const store = new NoteStore(dir)
+    await store.init()
+    const { id } = await store.create()
+    await store.save(id, docFrom('# Party\n\nbring cake\n'))
+    await store.rename(id, 'my-party')
+
+    expect(await notes()).toEqual(['party--my-party.md'])
+    expect(store.has(id)).toBe(false)
+    expect(store.list()[0]).toMatchObject({ id: 'my-party', title: 'Party' })
+    expect(store.movedTo(id)).toBe('my-party')
+
+    await store.idle()
+    const restarted = new NoteStore(dir)
+    await restarted.init()
+    expect(restarted.list().map((n) => n.id)).toEqual(['my-party'])
+    expect(restarted.movedTo(id)).toBe('my-party')
+    const loaded = new Y.Doc()
+    await restarted.load('my-party', loaded)
+    expect(markdownOf(loaded)).toBe('# Party\n\nbring cake\n')
+  })
+
+  it('moves an open note with its live content, so late edits merge without duplicates', async () => {
+    const store = new NoteStore(dir)
+    await store.init()
+    const { id } = await store.create()
+    const live = docFrom('saved\n')
+    await store.save(id, live)
+    addParagraph(live, 'typed before the move')
+    await store.rename(id, 'moved', live)
+    addParagraph(live, 'typed after the move')
+
+    const loaded = new Y.Doc()
+    await store.load('moved', loaded)
+    expect(markdownOf(loaded)).not.toContain('after')
+    Y.applyUpdate(loaded, Y.encodeStateAsUpdate(live))
+    expect(markdownOf(loaded)).toBe(markdownOf(live))
+    expect(markdownOf(loaded).match(/saved/g)).toHaveLength(1)
+  })
+
+  it('refuses an address another note has', async () => {
+    const store = new NoteStore(dir)
+    await store.init()
+    const a = await store.create()
+    const b = await store.create()
+    await expect(store.rename(a.id, b.id)).rejects.toThrow()
+    await expect(store.rename(a.id, 'Not Valid')).rejects.toThrow()
+    expect(store.has(a.id)).toBe(true)
+  })
+
+  it('drops redirects when the old address is reused or the note is deleted', async () => {
+    const store = new NoteStore(dir)
+    await store.init()
+    const a = await store.create()
+    const b = await store.create()
+    await store.rename(a.id, 'party')
+    await store.rename('party', 'big-party')
+    expect(store.redirects()).toEqual({ [a.id]: 'big-party', party: 'big-party' })
+
+    await store.rename(b.id, 'party')
+    expect(store.redirects()).toEqual({ [a.id]: 'big-party', [b.id]: 'party' })
+
+    await store.remove('big-party')
+    await store.idle()
+    expect(store.redirects()).toEqual({ [b.id]: 'party' })
+    expect(JSON.parse(await readFile(path.join(dir, '.knotes', 'moved.json'), 'utf8'))).toEqual({ [b.id]: 'party' })
   })
 })
