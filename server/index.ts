@@ -6,7 +6,8 @@ import path from 'node:path'
 import express from 'express'
 import { WebSocketServer } from 'ws'
 import { Hocuspocus } from '@hocuspocus/server'
-import { NOTE_ID } from '../shared/extensions.ts'
+import * as Y from 'yjs'
+import { NOTE_ID } from '../shared/address.ts'
 import { NoteStore } from './store.ts'
 import { Presence } from './presence.ts'
 
@@ -36,7 +37,15 @@ const hocuspocus = new Hocuspocus({
     await store.load(documentName, document)
   },
   async onStoreDocument({ document, documentName }) {
-    await store.save(documentName, document)
+    const to = store.movedTo(documentName)
+    if (!to) return store.save(documentName, document)
+    // The note got a new address while this doc was open, and edits reached it after
+    // the move. They belong to the note at its new address. The store moved this doc's
+    // Yjs state along with the note, so the two share a history and merge cleanly.
+    if (!store.has(to)) return
+    const conn = await hocuspocus.openDirectConnection(to)
+    await conn.transact((doc) => Y.applyUpdate(doc, Y.encodeStateAsUpdate(document)))
+    await conn.disconnect()
   },
   async onAwarenessUpdate({ documentName, awareness }) {
     presence.update(documentName, awareness)
@@ -67,8 +76,30 @@ app.get('/api/notes/:id/markdown', (req, res) => {
   const file = NOTE_ID.test(req.params.id) ? store.fileOf(req.params.id) : undefined
   if (!file) return void res.sendStatus(404)
   res.type('text/markdown; charset=utf-8')
-  res.attachment(path.basename(file).replace(/--[a-z0-9]{10}\.md$/, '.md'))
+  res.attachment(path.basename(file).replace(/--[a-z0-9-]+\.md$/, '.md'))
   res.sendFile(file)
+})
+
+// Give a note a new address: PATCH { "id": "my-party" }. The old address redirects.
+app.patch('/api/notes/:id', async (req, res) => {
+  const { id } = req.params
+  const to: unknown = req.body?.id
+  if (!NOTE_ID.test(id) || !store.has(id)) return void res.sendStatus(404)
+  if (typeof to !== 'string' || !NOTE_ID.test(to)) {
+    return void res.status(400).json({ error: 'An address can only have letters, numbers and dashes.' })
+  }
+  if (to !== id) {
+    // A doc still in memory under that name belongs to a note that has only just left it.
+    if (store.has(to) || hocuspocus.documents.has(to)) {
+      return void res.status(409).json({ error: 'Another page already has that address.' })
+    }
+    await store.rename(id, to, hocuspocus.documents.get(id))
+    // Everyone on the page follows it through the live index. Their edits since the
+    // move are merged into the note at its new address when this doc is stored.
+    hocuspocus.closeConnections(id)
+    presence.clear(id)
+  }
+  res.json(store.list().find((note) => note.id === to))
 })
 
 app.delete('/api/notes/:id', async (req, res) => {
@@ -79,8 +110,8 @@ app.delete('/api/notes/:id', async (req, res) => {
   res.sendStatus(204)
 })
 
-// The index, live: every open tab gets the note list and who is in which note,
-// again whenever either changes.
+// The index, live: every open tab gets the note list, who is in which note and where
+// renamed notes went, again whenever any of it changes.
 const listeners = new Set<express.Response>()
 let pending: NodeJS.Timeout | undefined
 const broadcast = () => {
@@ -90,7 +121,7 @@ const broadcast = () => {
     for (const res of listeners) res.write(data)
   }, 150)
 }
-const snapshot = () => ({ notes: store.list(), presence: presence.snapshot() })
+const snapshot = () => ({ notes: store.list(), presence: presence.snapshot(), moved: store.redirects() })
 store.on('change', broadcast)
 presence.on('change', broadcast)
 

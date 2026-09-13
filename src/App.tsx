@@ -31,16 +31,27 @@ export function App() {
     if (path !== '/' && !noteId) navigate('/', true)
   }, [path, noteId])
 
-  // Someone else tore out the page we're on: go back to the index.
+  // Once the live index has the note we created, it's the index's to show. Holding on
+  // to it would bring it back as a ghost after it's renamed or torn out.
+  useEffect(() => {
+    if (fresh && live.notes.some((n) => n.id === fresh.id)) setFresh(null)
+  }, [fresh, live.notes])
+
+  // The page we're on (or the link we followed) moved to a new address: follow it.
+  // Someone else tore it out: go back to the index.
   const seen = useRef(new Set<string>())
   useEffect(() => {
     if (!live.loaded) return
     for (const n of live.notes) seen.current.add(n.id)
-    if (noteId && seen.current.has(noteId) && !live.notes.some((n) => n.id === noteId)) {
+    if (!noteId || live.notes.some((n) => n.id === noteId)) return
+    const movedTo = live.moved[noteId]
+    if (movedTo) {
+      navigate(`/n/${movedTo}`, true)
+    } else if (seen.current.has(noteId)) {
       setNotice('That page was torn out of the notebook.')
       navigate('/', true)
     }
-  }, [live.loaded, live.notes, noteId])
+  }, [live.loaded, live.notes, live.moved, noteId])
 
   useEffect(() => {
     document.title = current ? `${current.title || 'Untitled'} · knotes` : 'knotes'

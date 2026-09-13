@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { NOTE_ID } from '../shared/address.ts'
 
 export interface NoteMeta {
   id: string
@@ -16,19 +17,21 @@ export interface Writer {
 export interface LiveIndex {
   notes: NoteMeta[]
   presence: Record<string, Writer[]>
+  // Old addresses of renamed notes → where the note is now.
+  moved: Record<string, string>
   connected: boolean
   loaded: boolean
 }
 
-// The note list and who is in which note, pushed by the server over SSE.
+// The note list, who is in which note and where renamed notes went, pushed by the server over SSE.
 export function useLiveIndex(): LiveIndex {
-  const [state, setState] = useState<LiveIndex>({ notes: [], presence: {}, connected: false, loaded: false })
+  const [state, setState] = useState<LiveIndex>({ notes: [], presence: {}, moved: {}, connected: false, loaded: false })
 
   useEffect(() => {
     const events = new EventSource('/api/events')
     events.onmessage = (e) => {
-      const { notes, presence } = JSON.parse(e.data)
-      setState({ notes, presence, connected: true, loaded: true })
+      const { notes, presence, moved } = JSON.parse(e.data)
+      setState({ notes, presence, moved: moved ?? {}, connected: true, loaded: true })
     }
     events.onerror = () => setState((s) => ({ ...s, connected: false }))
     return () => events.close()
@@ -48,6 +51,17 @@ export async function deleteNote(id: string) {
   if (!res.ok && res.status !== 404) throw new Error(`Could not delete the note (${res.status})`)
 }
 
+export async function renameNote(id: string, to: string): Promise<NoteMeta> {
+  const res = await fetch(`/api/notes/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: to }),
+  })
+  if (res.ok) return res.json()
+  const { error } = await res.json().catch(() => ({}))
+  throw new Error(error ?? `Could not change the address (${res.status})`)
+}
+
 export const collabUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/collab`
 
 // ── Routing: two routes, / and /n/:id, so no router library ─────────────────
@@ -64,7 +78,11 @@ export function navigate(path: string, replace = false) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export const noteIdFrom = (path: string) => /^\/n\/([a-z0-9]{10})\/?$/.exec(path)?.[1] ?? null
+// Addresses get typed from memory, so /n/My-Party finds my-party.
+export function noteIdFrom(path: string) {
+  const id = /^\/n\/([^/]+)\/?$/.exec(path)?.[1].toLowerCase()
+  return id && NOTE_ID.test(id) ? id : null
+}
 
 // ── Dates ────────────────────────────────────────────────────────────────────
 const DAY = 86_400_000

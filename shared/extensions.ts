@@ -17,5 +17,3 @@ export const noteExtensions = [
 
 // Name of the Y.XmlFragment that holds the note inside each Y.Doc.
 export const FIELD = 'default'
-
-export const NOTE_ID = /^[a-z0-9]{10}$/

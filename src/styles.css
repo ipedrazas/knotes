@@ -1077,6 +1077,48 @@ button {
   margin-top: 24px;
 }
 
+/* ── A page's address (an index card too) ────────────────────────────────── */
+
+.address {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.address__host {
+  flex: none;
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.75rem;
+}
+
+.address input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--type);
+  font-size: 1.15rem;
+  outline: none;
+}
+
+.card__note {
+  min-height: 30px;
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-family: var(--type);
+  font-size: 0.75rem;
+  line-height: 30px;
+  overflow-wrap: anywhere;
+}
+
+.card__note--error {
+  color: var(--stamp);
+}
+
 /* ── Animation ───────────────────────────────────────────────────────────── */
 
 @keyframes scribble {
