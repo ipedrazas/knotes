@@ -64,6 +64,12 @@ export async function renameNote(id: string, to: string): Promise<NoteMeta> {
 
 export const collabUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/collab`
 
+export const noteUrl = (id: string) => `${location.origin}/n/${id}`
+
+// A QR code for a link, as an SVG drawn by qr.andcake.dev from the link alone, in ink on card.
+export const qrCodeUrl = (url: string) =>
+  `https://qr.andcake.dev/qr?${new URLSearchParams({ url, fg: '#1d2a44', bg: '#fffdf7' })}`
+
 // ── Routing: two routes, / and /n/:id, so no router library ─────────────────
 const subscribe = (cb: () => void) => {
   window.addEventListener('popstate', cb)

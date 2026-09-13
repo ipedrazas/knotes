@@ -10,6 +10,7 @@ import { collabUrl, deleteNote, longDate, navigate, type NoteMeta } from '../api
 import { safeColor, type User } from '../user.ts'
 import { AddressCard } from './AddressCard.tsx'
 import { Blots, namesOf } from './Blots.tsx'
+import { ShareCard } from './ShareCard.tsx'
 import { Toolbar } from './Toolbar.tsx'
 
 interface Props {
@@ -70,6 +71,7 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
   const writing = peers.filter((p) => p.typing)
   const [missing, setMissing] = useState(false)
   const [readdressing, setReaddressing] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   useEffect(() => {
     const onFailed = () => setMissing(true)
@@ -149,6 +151,9 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
         <Blots people={peers} />
         <span className={`stamp stamp--${status}`}>{STATUS_LABEL[status]}</span>
         <div className="sheet__actions">
+          <button className="tool" onClick={() => setSharing(true)} title="Share this page: its link and a QR code">
+            Share
+          </button>
           <button className="tool" onClick={() => setReaddressing(true)} title={`Change this page's address (/n/${id})`}>
             Address
           </button>
@@ -165,6 +170,7 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
         <EditorContent editor={editor} className="paper__lines" />
       </div>
       {readdressing && <AddressCard id={id} onClose={() => setReaddressing(false)} />}
+      {sharing && <ShareCard id={id} onClose={() => setSharing(false)} />}
     </section>
   )
 }

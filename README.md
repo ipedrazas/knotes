@@ -15,6 +15,9 @@ Runs at <https://knotes.andcake.dev>.
 - **Rich text, stored as markdown.** A [TipTap](https://tiptap.dev) editor with titles,
   headings, bold/italic/strike, code, links, bulleted, numbered and check lists, quotes, code
   blocks and dividers. Markdown shortcuts work as you type (`# `, `- `, `[ ] `, `> `, ```` ``` ````).
+- **Sharing.** "Share" on a note shows its link and a QR code, so a phone can open the same
+  page. The code is drawn by [qr.andcake.dev](https://github.com/ipedrazas/qrcode), which is
+  sent the note's link and nothing else.
 - **No accounts.** On your first visit you pick a name and an ink colour. They're kept in your
   browser. Anyone who can reach the site can read, write and delete, so if it's exposed to the
   internet, put an access list on the proxy host in Nginx Proxy Manager.
