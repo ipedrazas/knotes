@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createNote, navigate, noteIdFrom, useLiveIndex, usePath, type NoteMeta } from './api.ts'
+import {
+  createNote,
+  navigate,
+  NEW_SURVEY,
+  noteIdFrom,
+  surveyIdFrom,
+  useLiveIndex,
+  usePath,
+  type NoteMeta,
+} from './api.ts'
 import { loadUser, saveUser, type User } from './user.ts'
 import { NoteIndex } from './components/NoteIndex.tsx'
+import { NewSurvey } from './components/NewSurvey.tsx'
 import { NotePage } from './components/NotePage.tsx'
+import { SurveyPage } from './components/SurveyPage.tsx'
 import { WhoCard } from './components/WhoCard.tsx'
 
 export function App() {
@@ -15,21 +26,29 @@ export function App() {
   const live = useLiveIndex()
   const path = usePath()
   const noteId = noteIdFrom(path)
+  const surveyId = surveyIdFrom(path)
+  const writingSurvey = path === NEW_SURVEY
 
   const notes = useMemo(
     () => (fresh && !live.notes.some((n) => n.id === fresh.id) ? [fresh, ...live.notes] : live.notes),
     [fresh, live.notes],
   )
   const current = notes.find((n) => n.id === noteId)
+  const currentSurvey = live.surveys.find((s) => s.id === surveyId)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return q ? notes.filter((n) => `${n.title}\n${n.preview}`.toLowerCase().includes(q)) : notes
   }, [notes, query])
 
+  const filteredSurveys = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q ? live.surveys.filter((s) => s.question.toLowerCase().includes(q)) : live.surveys
+  }, [live.surveys, query])
+
   useEffect(() => {
-    if (path !== '/' && !noteId) navigate('/', true)
-  }, [path, noteId])
+    if (path !== '/' && !noteId && !surveyId && !writingSurvey) navigate('/', true)
+  }, [path, noteId, surveyId, writingSurvey])
 
   // Once the live index has the note we created, it's the index's to show. Holding on
   // to it would bring it back as a ghost after it's renamed or torn out.
@@ -43,6 +62,12 @@ export function App() {
   useEffect(() => {
     if (!live.loaded) return
     for (const n of live.notes) seen.current.add(n.id)
+    for (const s of live.surveys) seen.current.add(`s:${s.id}`)
+    if (surveyId && !live.surveys.some((s) => s.id === surveyId) && seen.current.has(`s:${surveyId}`)) {
+      setNotice('That survey was torn out of the notebook.')
+      navigate('/', true)
+      return
+    }
     if (!noteId || live.notes.some((n) => n.id === noteId)) return
     const movedTo = live.moved[noteId]
     if (movedTo) {
@@ -51,15 +76,17 @@ export function App() {
       setNotice('That page was torn out of the notebook.')
       navigate('/', true)
     }
-  }, [live.loaded, live.notes, live.moved, noteId])
+  }, [live.loaded, live.notes, live.moved, live.surveys, noteId, surveyId])
 
+  // Survey pages set their own title.
   useEffect(() => {
+    if (surveyId || writingSurvey) return
     document.title = current ? `${current.title || 'Untitled'} · knotes` : 'knotes'
-  }, [current])
+  }, [current, surveyId, writingSurvey])
 
   useEffect(() => {
-    if (noteId) setNotice(null)
-  }, [noteId])
+    if (noteId || surveyId || writingSurvey) setNotice(null)
+  }, [noteId, surveyId, writingSurvey])
 
   async function newNote() {
     try {
@@ -73,16 +100,19 @@ export function App() {
   }
 
   return (
-    <div className="desk" data-view={noteId ? 'note' : 'index'}>
+    <div className="desk" data-view={noteId || surveyId || writingSurvey ? 'note' : 'index'}>
       <NoteIndex
         notes={filtered}
-        total={notes.length}
+        surveys={filteredSurveys}
+        total={notes.length + live.surveys.length}
         loaded={live.loaded}
         presence={live.presence}
         activeId={noteId}
+        activeSurveyId={surveyId}
         query={query}
         onQuery={setQuery}
         onNew={newNote}
+        onNewSurvey={() => navigate(NEW_SURVEY)}
         user={user}
         onEditUser={() => setEditingUser(true)}
         connected={live.connected}
@@ -90,6 +120,10 @@ export function App() {
       <main className="desk__page">
         {noteId && user ? (
           <NotePage key={noteId} id={noteId} meta={current} user={user} onGone={setNotice} />
+        ) : surveyId && user ? (
+          <SurveyPage key={surveyId} id={surveyId} meta={currentSurvey} user={user} onGone={setNotice} />
+        ) : writingSurvey && user ? (
+          <NewSurvey key={location.search} />
         ) : (
           <section className="sheet sheet--blank" aria-label="No page open">
             <div className="blank">

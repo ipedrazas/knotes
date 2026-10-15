@@ -40,15 +40,15 @@ export function slugify(title: string): string {
   return toAddress(title) || 'untitled'
 }
 
-const newId = () => {
+export const newId = () => {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
   return Array.from(randomBytes(10), (b) => alphabet[b % alphabet.length]).join('')
 }
 
-const sha = (text: string) => createHash('sha256').update(text).digest('hex')
+export const sha = (text: string) => createHash('sha256').update(text).digest('hex')
 
 // Write to a temp file and rename over the target, so a crash never leaves half a note.
-async function writeAtomic(file: string, data: string | Uint8Array) {
+export async function writeAtomic(file: string, data: string | Uint8Array) {
   const tmp = `${file}.${process.pid}.tmp`
   await writeFile(tmp, data)
   await rename(tmp, file)

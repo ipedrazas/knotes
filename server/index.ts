@@ -10,14 +10,17 @@ import * as Y from 'yjs'
 import { NOTE_ID } from '../shared/address.ts'
 import { NoteStore } from './store.ts'
 import { Presence } from './presence.ts'
+import { SurveyError, SurveyStore } from './surveys.ts'
 
 const PORT = Number(process.env.PORT ?? 3000)
 const DATA_DIR = path.resolve(process.env.DATA_DIR ?? 'data')
 const STATIC_DIR = path.resolve(import.meta.dirname, '../dist/client')
 
 const store = new NoteStore(DATA_DIR)
+const surveys = new SurveyStore(DATA_DIR)
 try {
   await store.init()
+  await surveys.init()
 } catch (err) {
   console.error(`[knotes] cannot use DATA_DIR ${DATA_DIR}: ${(err as Error).message}`)
   console.error('[knotes] the directory must exist and be writable by the container user (uid 1000 by default)')
@@ -110,8 +113,59 @@ app.delete('/api/notes/:id', async (req, res) => {
   res.sendStatus(204)
 })
 
-// The index, live: every open tab gets the note list, who is in which note and where
-// renamed notes went, again whenever any of it changes.
+// ── Surveys ──────────────────────────────────────────────────────────────────
+// Browsers say who they are with X-Voter (a token they made up) and, for surveys they
+// published, X-Owner (the token they were given then).
+const surveyFailed = (res: express.Response, err: unknown) => {
+  if (!(err instanceof SurveyError)) throw err
+  res.status(err.status).json({ error: err.message })
+}
+
+// Publish: { question, options, multiple, named, closesAt, id? }. The answer carries the
+// owner token, the only time it's ever sent.
+app.post('/api/surveys', async (req, res) => {
+  try {
+    const { survey, token } = await surveys.create(req.body, req.body?.id)
+    res.status(201).json({ survey, ownerToken: token })
+  } catch (err) {
+    surveyFailed(res, err)
+  }
+})
+
+app.get('/api/surveys/:id', (req, res) => {
+  const survey = surveys.view(req.params.id, { voter: req.get('x-voter'), owner: req.get('x-owner') })
+  if (!survey) return void res.sendStatus(404)
+  res.json(survey)
+})
+
+// Vote, or change your vote: { choices: [0, 2], name, color }.
+app.put('/api/surveys/:id/vote', async (req, res) => {
+  try {
+    res.json(await surveys.vote(req.params.id, req.get('x-voter'), req.body))
+  } catch (err) {
+    surveyFailed(res, err)
+  }
+})
+
+app.post('/api/surveys/:id/close', async (req, res) => {
+  try {
+    res.json(await surveys.close(req.params.id, req.get('x-owner')))
+  } catch (err) {
+    surveyFailed(res, err)
+  }
+})
+
+app.delete('/api/surveys/:id', async (req, res) => {
+  try {
+    await surveys.remove(req.params.id, req.get('x-owner'))
+    res.sendStatus(204)
+  } catch (err) {
+    surveyFailed(res, err)
+  }
+})
+
+// The index, live: every open tab gets the note list, who is in which note, where
+// renamed notes went and the surveys, again whenever any of it changes.
 const listeners = new Set<express.Response>()
 let pending: NodeJS.Timeout | undefined
 const broadcast = () => {
@@ -121,8 +175,14 @@ const broadcast = () => {
     for (const res of listeners) res.write(data)
   }, 150)
 }
-const snapshot = () => ({ notes: store.list(), presence: presence.snapshot(), moved: store.redirects() })
+const snapshot = () => ({
+  notes: store.list(),
+  presence: presence.snapshot(),
+  moved: store.redirects(),
+  surveys: surveys.list(),
+})
 store.on('change', broadcast)
+surveys.on('change', broadcast)
 presence.on('change', broadcast)
 
 app.get('/api/events', (req, res) => {
@@ -150,7 +210,7 @@ app.use('/api', (_req, res) => {
 if (existsSync(STATIC_DIR)) {
   app.use('/assets', express.static(path.join(STATIC_DIR, 'assets'), { immutable: true, maxAge: '1y' }))
   app.use(express.static(STATIC_DIR, { index: false }))
-  // Client-side routes (/, /n/:id) all get the app shell.
+  // Client-side routes (/, /n/:id, /s/:id) all get the app shell.
   app.use((req, res, next) => {
     if (req.method !== 'GET') return next()
     res.setHeader('Cache-Control', 'no-cache')
@@ -195,7 +255,7 @@ async function shutdown(signal: string) {
   await Promise.allSettled(
     [...hocuspocus.documents].filter(([name]) => store.has(name)).map(([name, doc]) => store.save(name, doc)),
   )
-  await store.idle()
+  await Promise.all([store.idle(), surveys.idle()])
   process.exit(0)
 }
 process.on('SIGTERM', () => void shutdown('SIGTERM'))

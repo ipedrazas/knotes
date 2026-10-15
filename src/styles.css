@@ -1170,6 +1170,329 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* ── Surveys: a question on the ruled page, boxes to tick, a tally in pencil ─ */
+
+.entry__mark {
+  flex: none;
+  color: var(--stamp);
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.survey {
+  max-width: calc(46em + var(--gutter) + 58px);
+  cursor: auto;
+}
+
+.survey__question {
+  margin: 0;
+  font-family: var(--title);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: calc(var(--lh) * 2);
+  overflow-wrap: anywhere;
+}
+
+.survey__how {
+  margin: 0 0 calc(var(--lh) / 2);
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.75rem;
+  line-height: var(--lh);
+}
+
+.ballot {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.ballot__option {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  min-height: var(--lh);
+  font-size: 1.15rem;
+  line-height: var(--lh);
+  cursor: pointer;
+}
+
+.ballot__option input,
+.survey__choice input {
+  appearance: none;
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 2px solid var(--ink);
+  border-radius: 3px 5px 3px 6px;
+  background: transparent;
+  transform: rotate(-3deg);
+  cursor: pointer;
+}
+
+.ballot__option input[type='radio'],
+.survey__choice input {
+  border-radius: 52% 48% 55% 45% / 50% 55% 45% 50%;
+}
+
+.ballot__option input:checked::after,
+.survey__choice input:checked::after {
+  content: '✓';
+  color: var(--stamp);
+  font-family: var(--hand);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(3px, -5px) rotate(10deg);
+}
+
+.ballot__option input:focus-visible,
+.survey__choice input:focus-visible {
+  outline: 2px dashed var(--ink);
+  outline-offset: 3px;
+}
+
+.survey__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  min-height: calc(var(--lh) * 2);
+}
+
+.survey--draft .survey__actions,
+.survey__warning ~ .survey__actions {
+  justify-content: flex-end;
+  max-width: 34em;
+}
+
+.survey__so-far {
+  margin: calc(var(--lh) / 2) 0 0;
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-size: 1.5rem;
+  line-height: var(--lh);
+}
+
+.survey__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-size: 1.35rem;
+  line-height: var(--lh);
+}
+
+.survey__small {
+  display: block;
+  margin: 0;
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.72rem;
+  line-height: var(--lh);
+}
+
+.survey__warning {
+  max-width: 34em;
+  margin: calc(var(--lh) / 2) 0 0;
+  padding: 0 12px;
+  border-left: 3px solid var(--stamp);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: var(--lh);
+}
+
+.survey__error {
+  min-height: var(--lh);
+  margin: 0;
+  color: var(--stamp);
+  font-family: var(--type);
+  font-size: 0.75rem;
+  line-height: var(--lh);
+}
+
+.sheet > .survey__error {
+  padding: 20px calc(var(--gutter) + 22px);
+}
+
+/* the tally: pencil bars, one per option */
+.tally {
+  display: grid;
+  gap: 4px;
+  max-width: 34em;
+  margin: 0 0 calc(var(--lh) / 2);
+  padding: 0;
+  list-style: none;
+}
+
+.tally__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 1.1rem;
+  line-height: var(--lh);
+}
+
+.tally__option {
+  overflow-wrap: anywhere;
+}
+
+.tally__tick {
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.tally__count {
+  flex: none;
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.75rem;
+}
+
+.tally__bar {
+  height: 12px;
+  border-radius: 2px 6px 3px 5px;
+  background: rgba(60, 40, 10, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(60, 40, 10, 0.12);
+}
+
+.tally__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: repeating-linear-gradient(-55deg, var(--ink-soft) 0 2px, transparent 2px 5px);
+  transition: width 0.4s ease;
+}
+
+.tally__row.is-mine .tally__bar span {
+  background: repeating-linear-gradient(-55deg, var(--stamp) 0 2px, transparent 2px 5px);
+}
+
+.tally__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* writing a survey */
+.survey__field {
+  display: block;
+  max-width: 34em;
+  margin: 0 0 calc(var(--lh) / 2);
+  padding: 0;
+  border: none;
+}
+
+.survey__label {
+  display: block;
+  padding: 0;
+  color: var(--pencil);
+  font-family: var(--type);
+  font-size: 0.75rem;
+  line-height: var(--lh);
+}
+
+.survey--draft input:not([type='radio']) {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 2px solid rgba(29, 42, 68, 0.5);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: calc(var(--lh) - 2px);
+  outline: none;
+}
+
+.survey--draft input:not([type='radio']):focus {
+  border-bottom-color: var(--ink);
+}
+
+.survey--draft input::placeholder {
+  color: rgba(75, 86, 112, 0.35);
+}
+
+.survey--draft .survey__question-input {
+  font-family: var(--title);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: calc(var(--lh) * 1.5 - 2px);
+}
+
+.survey--draft input.survey__when {
+  width: auto;
+  font-family: var(--type);
+  font-size: 0.95rem;
+}
+
+.survey--draft .address input {
+  border-bottom: none;
+  font-family: var(--type);
+}
+
+.survey__options {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.survey__options li {
+  line-height: var(--lh);
+}
+
+.survey__options li::marker {
+  color: var(--ink-soft);
+  font-family: var(--title);
+  font-weight: 700;
+}
+
+.survey--draft .survey__options input {
+  width: calc(100% - 44px);
+}
+
+.survey__options .tool {
+  margin-left: 4px;
+  vertical-align: bottom;
+}
+
+.survey__choice label {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-size: 1.05rem;
+  line-height: var(--lh);
+  cursor: pointer;
+}
+
+/* the owner link, under the share card's link */
+.share__owner {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.18);
+}
+
+.share__owner .card__hint {
+  margin-bottom: 0;
+}
+
+.share__owner .card__note {
+  display: inline;
+}
+
 /* ── Animation ───────────────────────────────────────────────────────────── */
 
 @keyframes scribble {
@@ -1266,7 +1589,12 @@ button {
 
   .writing > p:first-child,
   .writing > h1,
-  .writing > h2:first-child {
+  .writing > h2:first-child,
+  .survey__question {
     font-size: 2.1rem;
+  }
+
+  .cover__tools .stamp-btn {
+    padding-inline: 7px;
   }
 }

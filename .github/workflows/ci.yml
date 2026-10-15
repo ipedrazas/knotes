@@ -31,7 +31,7 @@ jobs:
 
       - run: npm run typecheck
 
-      # Markdown round-trips and the on-disk store (renames, Yjs state, trash).
+      # Markdown round-trips and the on-disk stores (renames, Yjs state, trash, surveys).
       - run: npm test
 
       - run: npx vite build

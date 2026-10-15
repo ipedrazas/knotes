@@ -18,6 +18,10 @@ Runs at <https://knotes.andcake.dev>.
 - **Sharing.** "Share" on a note shows its link and a QR code, so a phone can open the same
   page. The code is drawn by [qr.andcake.dev](https://github.com/ipedrazas/qrcode), which is
   sent the note's link and nothing else.
+- **Surveys.** "+ Survey" asks everyone a question: options to choose one of, or as many
+  as you like, with votes anonymous or named. You see it as voters will before publishing,
+  and once it's published it can't be changed: to fix or rerun one, clone it. Voting closes
+  at an optional deadline, or when whoever published it says so. See [Surveys](#surveys).
 - **No accounts.** On your first visit you pick a name and an ink colour. They're kept in your
   browser. Anyone who can reach the site can read, write and delete, so if it's exposed to the
   internet, put an access list on the proxy host in Nginx Proxy Manager.
@@ -53,6 +57,28 @@ Runs at <https://knotes.andcake.dev>.
   HTML are kept as text. Empty lines between paragraphs aren't kept in the markdown, only in
   the Yjs state.
 
+## Surveys
+
+```
+/data/surveys
+├── where-to.json           ← the survey, written once when it's published
+├── where-to.votes.jsonl    ← every vote, appended; a browser's latest line is its vote
+└── where-to.closed         ← when it was closed early, if it was
+```
+
+- **Surveys live at `/s/<id>`.** An address like `/s/where-to` can be picked when
+  publishing, and doesn't change after that.
+- **One vote per browser.** There are no accounts, so a browser is a voter: it makes up a
+  token and sends it with its vote. Votes can be changed until the survey closes. Clearing
+  the browser's storage, or another browser, is another vote, so it's not a secret ballot
+  you can rely on.
+- **Results** show once you've voted, to everyone once it's closed, and always to whoever
+  published it. Anonymous surveys keep no names on disk.
+- **Only whoever published a survey can close or tear it out.** Publishing gives that
+  browser an owner token. "Share" on the survey shows an owner link, which makes another
+  browser an owner too. Only hashes of owner and voter tokens are stored.
+- Torn-out surveys go to `.trash/`, like notes.
+
 ## Development
 
 Needs Node 24+.
@@ -60,7 +86,7 @@ Needs Node 24+.
 ```sh
 npm install
 npm run dev          # server on :3000 (notes in ./data) + Vite on :5173, proxied
-npm test             # markdown round-trips and the note store
+npm test             # markdown round-trips, the note store and the survey store
 npm run typecheck
 npm run build        # client into dist/client
 npm start            # production server, serving dist/client
