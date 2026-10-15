@@ -6,7 +6,7 @@ import { Collaboration, isChangeOrigin } from '@tiptap/extension-collaboration'
 import { CollaborationCaret } from '@tiptap/extension-collaboration-caret'
 import { Placeholder } from '@tiptap/extensions'
 import { FIELD, noteExtensions } from '../../shared/extensions.ts'
-import { collabUrl, deleteNote, longDate, navigate, type NoteMeta } from '../api.ts'
+import { collabUrl, deleteNote, longDate, navigate, noteUrl, type NoteMeta } from '../api.ts'
 import { safeColor, type User } from '../user.ts'
 import { AddressCard } from './AddressCard.tsx'
 import { Blots, namesOf } from './Blots.tsx'
@@ -170,7 +170,13 @@ function Note({ id, meta, user, onGone, doc, provider }: Props & Conn) {
         <EditorContent editor={editor} className="paper__lines" />
       </div>
       {readdressing && <AddressCard id={id} onClose={() => setReaddressing(false)} />}
-      {sharing && <ShareCard id={id} onClose={() => setSharing(false)} />}
+      {sharing && (
+        <ShareCard
+          url={noteUrl(id)}
+          hint="Point a phone at the code, or send the link. Anyone with it can write here too."
+          onClose={() => setSharing(false)}
+        />
+      )}
     </section>
   )
 }
